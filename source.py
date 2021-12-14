@@ -13,6 +13,7 @@ from sklearn.model_selection import GridSearchCV # this will do cross validation
 from sklearn.metrics import confusion_matrix # this creates a confusion matrix
 from sklearn.metrics import plot_confusion_matrix # draws a confusion matrix
 from sklearn.decomposition import PCA # to perform PCA to plot the data
+from sklearn import preprocessing
 
 #For decision tree
 from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
@@ -34,8 +35,8 @@ print(len(df)) # 891 records in total
 # - could remove PassengerId as it will liekly not play a role
 # - some poeple have missing ages (remove from pool?), will depend on how many samples are missing out of the whole. Initial instructions are to put 100 for all missing at the moment
 
-
-df.drop('PassengerId', axis=1, inplace=True) # removing "PassengerId" as a column from the data
+#Not sure if we have to remove this yet
+#df.drop('PassengerId', axis=1, inplace=True) # removing "PassengerId" as a column from the data
 print(df.head())
 
 columns = [
@@ -60,3 +61,20 @@ for key in columns:
     print(df[key].unique())
     print("\n\n")
 
+#Booleans
+label = preprocessing.LabelEncoder();
+df['Embarked'] = label.fit_transform(df['Embarked']) #Boolean for whether embarked or not
+df['Sex'] = label.fit_transform(df['Sex']) #Boolean for whether male or not
+df['Cabin'] = label.fit_transform(df['Cabin']) #Boolean for whether or not someone has a cabin
+
+#Fill in missing ages with 100
+df['Age'].fillna(100,inplace=True)
+
+#Set up X and y
+X = df[['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Cabin', 'Embarked']]
+y = df['Survived']
+
+#Set up training and test sets
+X_train, X_test, y_train, t_test = train_test_split(X.values, y.values, test_size = 0.2, random_state = 0)
+
+#Now we need to apply 3 different models to this data and see their accuracy scores
