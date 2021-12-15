@@ -27,7 +27,13 @@ from sklearn.tree import export_text
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
 from sklearn.model_selection import cross_val_score
+
 
 df = pd.read_csv('titanic.csv', header=0)
 
@@ -35,6 +41,7 @@ print(df.head())
 print(len(df)) # 891 records in total
 
 df.drop('PassengerId', axis=1, inplace=True) # removing "PassengerId" as a column from the data
+df.drop('Name', axis=1, inplace=True)
 print(df.head())
 
 columns = [
@@ -57,19 +64,30 @@ for key in columns:
         continue
     print("Unique values for " + key + ": ")
     print(df[key].unique())
-    print("\n\n")
+    print("\n")
+
+# one hot encoding of Embarked
+onehot_embarked = pd.get_dummies(df.Embarked) # Encoding Column Embarked
+print(onehot_embarked)
+df = df.drop('Embarked',axis=1) # Drop column Embarked as it is now encoded
+df = df.join(onehot_embarked) # Join the encoded to df
+print(onehot_embarked.columns)
 
 #Booleans
 label = preprocessing.LabelEncoder();
-df['Embarked'] = label.fit_transform(df['Embarked']) #Boolean for whether embarked or not
 df['Sex'] = label.fit_transform(df['Sex']) #Boolean for whether male or not
 df['Cabin'] = label.fit_transform(df['Cabin']) #Boolean for whether or not someone has a cabin
+
 
 #Fill in missing ages with 100
 df['Age'].fillna(100,inplace=True)
 
 #Set up X and y
-X = df[['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Cabin', 'Embarked']]
+independent_variables = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Cabin']
+for col in onehot_embarked.columns: # adding hot encoded embarked columns into independent variables
+    independent_variables.append(col)
+
+X = df[independent_variables]
 y = df['Survived']
 
 #Set up training and test sets
@@ -87,6 +105,11 @@ plt.show()
 
 #Get accuracy score for Decision Tree (Model 1)
 print("Decision Tree Accuracy: ", accuracy_score(y_test, y_pred))
+print ("Precision ", precision_score(y_test, y_pred))
+print ("Recall ", recall_score(y_test, y_pred))
+print ("f1 score ", f1_score(y_test, y_pred))
+print("roc-auc score:", roc_auc_score(y_test, y_pred))
+
 
 #Next we apply Logistic Regression (Model 2)
 model2 = LogisticRegression(max_iter = 2000).fit(X_train, y_train)
@@ -97,8 +120,8 @@ print("Logistic Regression Accuracy: ", accuracy_score(y_test, y_pred))
 
 #ROC Curve and AUC Score for Logistic Regression Model
 y_pred_proba = model2.predict_proba(X_test)[::,1]
-fpr, tpr, _ = metrics.roc_curve(y_test, y_pred_proba)
-auc = metrics.roc_auc_score(y_test, y_pred_proba)
+fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+auc = roc_auc_score(y_test, y_pred_proba)
 plt.plot(fpr,tpr,label="data, AUC = " + str(auc))
 plt.legend(loc = 4)
 plt.show()
