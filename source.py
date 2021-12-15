@@ -17,6 +17,8 @@ from sklearn import preprocessing
 
 #For decision tree
 from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
+from sklearn.linear_model import LogisticRegression #For Logistic Regression
+from sklearn.neighbors import KNeighborsClassifier #For K Nearest Neighbors
 from sklearn.model_selection import train_test_split # Import train_test_split function
 from sklearn import metrics #Import scikit-learn metrics module for accuracy calculation
 from sklearn import tree
@@ -25,18 +27,14 @@ from sklearn.tree import export_text
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import cross_val_score
 
 df = pd.read_csv('titanic.csv', header=0)
 
 print(df.head())
 print(len(df)) # 891 records in total
 
-# - need to turn sex into 0 or 1, 0 for male, 1 for female
-# - could remove PassengerId as it will liekly not play a role
-# - some poeple have missing ages (remove from pool?), will depend on how many samples are missing out of the whole. Initial instructions are to put 100 for all missing at the moment
-
-#Not sure if we have to remove this yet
-#df.drop('PassengerId', axis=1, inplace=True) # removing "PassengerId" as a column from the data
+df.drop('PassengerId', axis=1, inplace=True) # removing "PassengerId" as a column from the data
 print(df.head())
 
 columns = [
@@ -75,6 +73,49 @@ X = df[['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Cabin', 'Embarked']]
 y = df['Survived']
 
 #Set up training and test sets
-X_train, X_test, y_train, t_test = train_test_split(X.values, y.values, test_size = 0.2, random_state = 0)
+X_train, X_test, y_train, y_test = train_test_split(X.values, y.values, test_size = 0.2, random_state = 0)
 
 #Now we need to apply 3 different models to this data and see their accuracy scores
+
+#First we apply Decision Tree (Model 1)
+model1 = tree.DecisionTreeClassifier().fit(X.values, y.values)
+y_pred = model1.predict(X_test)
+
+#Plot Decision Tree (Model 1)
+tree.plot_tree(model1)
+plt.show()
+
+#Get accuracy score for Decision Tree (Model 1)
+print("Decision Tree Accuracy: ", accuracy_score(y_test, y_pred))
+
+#Next we apply Logistic Regression (Model 2)
+model2 = LogisticRegression(max_iter = 2000).fit(X_train, y_train)
+y_pred = model2.predict(X_test)
+
+#Get accuracy score for Logistic Regression (Model 2)
+print("Logistic Regression Accuracy: ", accuracy_score(y_test, y_pred))
+
+#ROC Curve and AUC Score for Logistic Regression Model
+y_pred_proba = model2.predict_proba(X_test)[::,1]
+fpr, tpr, _ = metrics.roc_curve(y_test, y_pred_proba)
+auc = metrics.roc_auc_score(y_test, y_pred_proba)
+plt.plot(fpr,tpr,label="data, AUC = " + str(auc))
+plt.legend(loc = 4)
+plt.show()
+
+#Finally we apply K-Nearest Neighbors (Model 3)
+model3 = KNeighborsClassifier(n_neighbors = 5).fit(X_train, y_train)
+y_pred = model3.predict(X_test)
+
+#Get accuracy score for K-Nearest Neighbors (Model 3)
+print("K-Nearest Neighbors Accuracy: ", accuracy_score(y_test, y_pred))
+
+#Use cross validation and regularization to try to improve regression accurracy
+#Trying regularization for Logistic Regression
+model2part2 = LogisticRegression(max_iter = 2000, penalty = 'l2').fit(X_train,y_train)
+y_pred = model2part2.predict(X_test)
+print('Logistic Regression Accuracy with Regularization: ', accuracy_score(y_test, y_pred))
+#Trying cross validation
+model2part3 = LogisticRegression(max_iter = 2000)
+valscores = cross_val_score(model2part3, X, y, cv = 5)
+print('Cross Validation Scores: ', valscores)
